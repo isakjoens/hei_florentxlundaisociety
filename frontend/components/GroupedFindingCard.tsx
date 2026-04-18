@@ -14,19 +14,19 @@ const SEVERITY_ICON: Record<Severity, string> = {
   CRITICAL: "●", HIGH: "▲", MEDIUM: "◆", PASS: "✓",
 };
 
-const CATEGORY_INFO: Record<Category, { label: string; icon: string; context: string }> = {
-  secrets:    { label: "Secrets",    icon: "🔑", context: "Exposed credentials give attackers direct access to your databases, APIs, and cloud infrastructure — often the fastest path to a full compromise." },
-  ports:      { label: "Network",    icon: "🔌", context: "Open ports on sensitive services allow direct attacks on databases and internal systems. Most of these should never be reachable from the public internet." },
-  ssl:        { label: "SSL/TLS",    icon: "🔒", context: "SSL/TLS issues expose users to interception and man-in-the-middle attacks where an attacker can silently read or modify traffic." },
-  admin:      { label: "Admin",      icon: "⚙️",  context: "Exposed admin panels are high-value targets for brute-force and credential stuffing attacks. Even with strong passwords, reducing exposure is best practice." },
-  firewall:   { label: "Firewall",   icon: "🛡️",  context: "Without a firewall, your entire infrastructure is exposed to the internet. This often indicates multiple services are reachable that should be internal-only." },
-  github:     { label: "GitHub",     icon: "📦", context: "Secrets committed to code repositories can be discovered by anyone with repo access — or publicly indexed if the repo is public." },
-  headers:    { label: "Headers",    icon: "📋", context: "HTTP security headers are your browser-side defence against XSS, clickjacking, MIME sniffing, and data leakage. Missing headers are easy wins." },
-  dns:        { label: "DNS / Email",icon: "🌐", context: "Email security records (SPF, DMARC, DKIM) prevent attackers from impersonating your domain to send phishing emails to your users or partners." },
-  cookies:    { label: "Cookies",    icon: "🍪", context: "Insecure cookies can be stolen via XSS attacks or transmitted over unencrypted HTTP, exposing session tokens and authentication state." },
-  cors:       { label: "CORS",       icon: "↔️",  context: "CORS misconfigurations allow malicious websites to make authenticated requests on behalf of your users, potentially exposing private data or triggering actions." },
-  subdomains: { label: "Subdomains", icon: "🌍", context: "Forgotten or misconfigured subdomains expand your attack surface. Dangling DNS records pointing to deprovisioned cloud resources can be hijacked." },
-  breach:     { label: "Breach",     icon: "💥", context: "A past data breach signals historical security weaknesses. Affected credentials may still be in use and could enable account takeover via credential stuffing." },
+const CATEGORY_INFO: Record<Category, { label: string; context: string }> = {
+  secrets:    { label: "Secrets",    context: "Exposed credentials give attackers direct access to your databases, APIs, and cloud infrastructure — often the fastest path to a full compromise." },
+  ports:      { label: "Network",    context: "Open ports on sensitive services allow direct attacks on databases and internal systems. Most of these should never be reachable from the public internet." },
+  ssl:        { label: "SSL/TLS",    context: "SSL/TLS issues expose users to interception and man-in-the-middle attacks where an attacker can silently read or modify traffic." },
+  admin:      { label: "Admin",      context: "Exposed admin panels are high-value targets for brute-force and credential stuffing attacks. Even with strong passwords, reducing exposure is best practice." },
+  firewall:   { label: "Firewall",   context: "Without a firewall, your entire infrastructure is exposed to the internet. This often indicates multiple services are reachable that should be internal-only." },
+  github:     { label: "GitHub",     context: "Secrets committed to code repositories can be discovered by anyone with repo access — or publicly indexed if the repo is public." },
+  headers:    { label: "Headers",    context: "HTTP security headers are your browser-side defence against XSS, clickjacking, MIME sniffing, and data leakage. Missing headers are easy wins." },
+  dns:        { label: "DNS / Email",context: "Email security records (SPF, DMARC, DKIM) prevent attackers from impersonating your domain to send phishing emails to your users or partners." },
+  cookies:    { label: "Cookies",    context: "Insecure cookies can be stolen via XSS attacks or transmitted over unencrypted HTTP, exposing session tokens and authentication state." },
+  cors:       { label: "CORS",       context: "CORS misconfigurations allow malicious websites to make authenticated requests on behalf of your users, potentially exposing private data or triggering actions." },
+  subdomains: { label: "Subdomains", context: "Forgotten or misconfigured subdomains expand your attack surface. Dangling DNS records pointing to deprovisioned cloud resources can be hijacked." },
+  breach:     { label: "Breach",     context: "A past data breach signals historical security weaknesses. Affected credentials may still be in use and could enable account takeover via credential stuffing." },
 };
 
 function isUrl(value: string) {
@@ -39,7 +39,7 @@ export default function GroupedFindingCard({ finding }: { finding: GroupedFindin
   const [showFix, setShowFix] = useState(false);
   const styles = SEVERITY_STYLES[finding.severity];
   const muted = finding.likely_false_positive;
-  const catInfo = CATEGORY_INFO[finding.category] ?? { label: finding.category, icon: "•", context: "" };
+  const catInfo = CATEGORY_INFO[finding.category] ?? { label: finding.category, context: "" };
   const isPass = finding.severity === "PASS";
 
   return (
@@ -52,8 +52,7 @@ export default function GroupedFindingCard({ finding }: { finding: GroupedFindin
             <span>{SEVERITY_ICON[finding.severity]}</span>
             {styles.label}
           </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-gray-400">
-            <span>{catInfo.icon}</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-800 text-gray-400">
             {catInfo.label}
           </span>
           {finding.count > 1 && (
