@@ -16,6 +16,8 @@ class Category(str, Enum):
     ADMIN = "admin"
     FIREWALL = "firewall"
     GITHUB = "github"
+    HEADERS = "headers"
+    DNS = "dns"
 
 
 class Finding(BaseModel):

@@ -3,7 +3,7 @@ import time
 from urllib.parse import urlparse
 
 from models import Finding, Severity, Category, ScanRequest, ScanResponse
-from scanner import secrets_scanner, ssl_checker, port_scanner, admin_panel
+from scanner import secrets_scanner, ssl_checker, port_scanner, admin_panel, headers_scanner, dns_scanner, github_scanner
 
 SEVERITY_ORDER = {Severity.CRITICAL: 0, Severity.HIGH: 1, Severity.MEDIUM: 2, Severity.PASS: 3}
 
@@ -18,7 +18,12 @@ async def run_scan(request: ScanRequest) -> ScanResponse:
         ssl_checker.scan(request.url),
         port_scanner.scan(hostname),
         admin_panel.scan(request.url),
+        headers_scanner.scan(request.url),
+        dns_scanner.scan(request.url),
     ]
+
+    if request.github_url:
+        tasks.append(github_scanner.scan(request.github_url))
 
     results = await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=30)
 

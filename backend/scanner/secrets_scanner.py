@@ -16,6 +16,8 @@ PROBES = [
     ("secrets_ds_store", "/.DS_Store", Severity.MEDIUM, ".DS_Store file exposed (leaks directory structure)"),
 ]
 
+DIR_LISTING_PATHS = ["/uploads", "/backup", "/static", "/files", "/assets"]
+
 FIX_TEXT = (
     "Block access to this path in your web server config "
     "(nginx: `location ~ /\\.env { deny all; }`, "
@@ -54,13 +56,33 @@ async def _probe(client: httpx.AsyncClient, base: str, probe_id: str, path: str,
     return None
 
 
+async def _probe_dir_listing(client: httpx.AsyncClient, base: str, path: str) -> Finding | None:
+    try:
+        url = f"{base}{path}"
+        resp = await client.get(url)
+        if resp.status_code == 200 and "Index of " in resp.text:
+            return Finding(
+                id=f"secrets_dir_listing_{path.strip('/').replace('/', '_')}",
+                severity=Severity.HIGH,
+                title=f"Directory listing enabled at {path}",
+                description=f"The directory {path} at {url} is publicly browsable. Attackers can enumerate all files.",
+                affected=url,
+                fix="Disable directory listing in your web server config (nginx: `autoindex off;`, Apache: `Options -Indexes`).",
+                category=Category.SECRETS,
+            )
+    except httpx.RequestError:
+        pass
+    return None
+
+
 async def scan(host_url: str) -> list[Finding]:
     base = host_url.rstrip("/")
 
     try:
         async with httpx.AsyncClient(follow_redirects=False, timeout=5) as client:
             results = await asyncio.gather(
-                *[_probe(client, base, pid, path, sev, title) for pid, path, sev, title in PROBES]
+                *[_probe(client, base, pid, path, sev, title) for pid, path, sev, title in PROBES],
+                *[_probe_dir_listing(client, base, path) for path in DIR_LISTING_PATHS],
             )
     except httpx.RequestError:
         return []
