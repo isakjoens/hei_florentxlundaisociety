@@ -13,13 +13,6 @@ interface Props {
   onReset: () => void;
 }
 
-const SEV_BG: Record<Severity, string> = {
-  CRITICAL: "bg-red-900/40 text-red-200 border-red-800",
-  HIGH: "bg-orange-900/40 text-orange-200 border-orange-800",
-  MEDIUM: "bg-yellow-900/30 text-yellow-200 border-yellow-800",
-  PASS: "bg-green-900/30 text-green-200 border-green-800",
-};
-
 function grade(s: Record<Severity, number>) {
   if (s.CRITICAL >= 4) return { g: "F", color: "text-red-500", sub: "Critical Risk" };
   if (s.CRITICAL >= 2) return { g: "D", color: "text-red-400", sub: "High Risk" };
@@ -29,28 +22,20 @@ function grade(s: Record<Severity, number>) {
 }
 
 export default function AnalysisResults({ scan, analysis, onReset }: Props) {
-  const [filter, setFilter] = useState<Severity | "ALL">("ALL");
+  const [tab, setTab] = useState<"problems" | "all">("problems");
   const { summary } = scan;
   const risk = grade(summary);
 
   const bySeverity = (a: { severity: Severity }, b: { severity: Severity }) =>
     SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
 
-  const real      = [...analysis.grouped_findings].filter(f => !f.likely_false_positive).sort(bySeverity);
+  const real       = [...analysis.grouped_findings].filter(f => !f.likely_false_positive).sort(bySeverity);
   const maybeNoise = [...analysis.grouped_findings].filter(f => f.likely_false_positive).sort(bySeverity);
 
-  const passes = real.filter(f => f.severity === "PASS");
-  const issues = real.filter(f => f.severity !== "PASS");
+  const problems = real.filter(f => f.severity !== "PASS");
+  const passes   = real.filter(f => f.severity === "PASS");
 
-  const visible =
-    filter === "ALL"  ? real :
-    filter === "PASS" ? passes :
-    issues.filter(f => f.severity === filter);
-
-  const severities: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "PASS"];
-  const tabs = severities
-    .map(s => ({ s, count: real.filter(f => f.severity === s).length }))
-    .filter(t => t.count > 0);
+  const visible = tab === "problems" ? problems : real;
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-5">
@@ -83,33 +68,47 @@ export default function AnalysisResults({ scan, analysis, onReset }: Props) {
         </div>
       </div>
 
-      {/* ── AI Summary ───────────────────────────────── */}
+      {/* ── Summary ──────────────────────────────────── */}
       <AISummaryCard analysis={analysis} />
 
-      {/* ── Filter tabs ──────────────────────────────── */}
-      <div className="flex gap-2 flex-wrap">
-        <Tab active={filter === "ALL"} onClick={() => setFilter("ALL")}
-          label="All" count={real.length} color="bg-gray-700 text-white" />
-        {tabs.map(({ s, count }) => (
-          <Tab key={s} active={filter === s} onClick={() => setFilter(s)}
-            label={s[0] + s.slice(1).toLowerCase()} count={count} color={SEV_BG[s]} />
-        ))}
+      {/* ── Tabs: Problems / All Tests ───────────────── */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setTab("problems")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            tab === "problems"
+              ? "bg-gray-700 text-white"
+              : "bg-transparent text-gray-500 border border-gray-800 hover:text-gray-300"
+          }`}
+        >
+          Problems <span className="opacity-60">({problems.length})</span>
+        </button>
+        <button
+          onClick={() => setTab("all")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            tab === "all"
+              ? "bg-gray-700 text-white"
+              : "bg-transparent text-gray-500 border border-gray-800 hover:text-gray-300"
+          }`}
+        >
+          All Tests <span className="opacity-60">({real.length})</span>
+        </button>
       </div>
 
       {/* ── Findings ─────────────────────────────────── */}
       <div className="space-y-3">
         {visible.length === 0
-          ? <p className="text-gray-600 text-sm text-center py-10">Nothing to show.</p>
+          ? <p className="text-gray-600 text-sm text-center py-10">No problems found — looking good!</p>
           : visible.map(f => <GroupedFindingCard key={f.id} finding={f} />)
         }
 
-        {/* False positive divider — only shown in "All" view */}
-        {filter === "ALL" && maybeNoise.length > 0 && (
+        {/* False positive divider */}
+        {maybeNoise.length > 0 && (
           <>
             <div className="flex items-center gap-3 pt-2">
               <div className="flex-1 border-t border-gray-800" />
               <span className="text-xs text-gray-500 whitespace-nowrap">
-                ⚠ Possibly not applicable to this site
+                Possibly not applicable to this site
               </span>
               <div className="flex-1 border-t border-gray-800" />
             </div>
@@ -128,20 +127,5 @@ function Stat({ n, label, color }: { n: number; label: string; color: string }) 
       <p className={`text-3xl font-black ${color}`}>{n}</p>
       <p className="text-xs text-gray-500">{label}</p>
     </div>
-  );
-}
-
-function Tab({ active, onClick, label, count, color }: {
-  active: boolean; onClick: () => void; label: string; count: number; color: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-        active ? `${color} border-transparent` : "bg-transparent text-gray-500 border-gray-800 hover:text-gray-300"
-      }`}
-    >
-      {label} <span className="opacity-60">({count})</span>
-    </button>
   );
 }
