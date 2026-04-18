@@ -32,7 +32,7 @@ async def health():
 @app.post("/api/scan", response_model=ScanResponse)
 async def scan(request: ScanRequest):
     if not request.url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=422, detail="URL must start with http:// or https://")
+        request = request.model_copy(update={"url": "https://" + request.url})
 
     try:
         result = await run_scan(request)
