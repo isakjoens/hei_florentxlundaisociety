@@ -132,7 +132,7 @@ async def _check_redirect(hostname: str) -> Finding | None:
         async with httpx.AsyncClient(follow_redirects=True, max_redirects=5, timeout=5) as client:
             resp = await client.get(f"http://{hostname}")
             # If the final URL is HTTPS, the site redirects properly
-            if str(resp.url).startswith("https://"):
+            if resp.url.scheme == "https":
                 return None  # Good — eventually redirects to HTTPS
             return Finding(
                 id="ssl_no_redirect",
