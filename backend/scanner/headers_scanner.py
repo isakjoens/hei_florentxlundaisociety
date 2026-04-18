@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import httpx
 
 from models import Finding, Severity, Category
@@ -35,12 +37,14 @@ HEADER_CHECKS = [
 
 
 async def scan(host_url: str) -> list[Finding]:
-    base = host_url.rstrip("/")
+    hostname = urlparse(host_url).hostname or ""
+    # Security headers are only meaningful on HTTPS responses — always probe https directly.
+    https_url = f"https://{hostname}"
     findings: list[Finding] = []
 
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=5) as client:
-            resp = await client.get(base)
+            resp = await client.get(https_url)
             headers = resp.headers
 
             for header_name, finding_id, title, description, fix in HEADER_CHECKS:
@@ -50,7 +54,7 @@ async def scan(host_url: str) -> list[Finding]:
                         severity=Severity.MEDIUM,
                         title=title,
                         description=description,
-                        affected=base,
+                        affected=https_url,
                         fix=fix,
                         category=Category.HEADERS,
                     ))
@@ -64,7 +68,7 @@ async def scan(host_url: str) -> list[Finding]:
             severity=Severity.PASS,
             title="Security headers in place",
             description="HSTS, X-Frame-Options, X-Content-Type-Options, and CSP headers are all set.",
-            affected=base,
+            affected=https_url,
             fix="No action needed.",
             category=Category.HEADERS,
         ))
